@@ -1,0 +1,8 @@
+{
+  "name": "Resurrection Calculator",
+  "description": "Trading position recovery and averaging-down calculator to reduce loss to target percentage.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
