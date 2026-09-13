@@ -12,9 +12,28 @@
     <meta name="theme-color" content="#059669" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Resurrection" />
+    <meta name="application-name" content="Resurrection" />
+    <meta name="msapplication-TileColor" content="#059669" />
+    <meta name="msapplication-starturl" content="/" />
+    <script>
+      // Filter benign Vite websocket disconnection error in cloud container where HMR is disabled
+      (function() {
+        var origError = console.error;
+        console.error = function() {
+          var msg = arguments && arguments[0] ? String(arguments[0]) : '';
+          if (msg.indexOf('[vite]') !== -1) {
+            return;
+          }
+          origError.apply(console, arguments);
+        };
+      })();
+    </script>
+    <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="icon" type="image/png" sizes="192x192" href="/pwa-192x192.png" />
+    <link rel="icon" type="image/png" sizes="512x512" href="/pwa-512x512.png" />
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white">

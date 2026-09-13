@@ -1,0 +1,9 @@
+{
+  "appId": "com.resurrection.calculator",
+  "appName": "Resurrection Calculator",
+  "webDir": "dist",
+  "bundledWebRuntime": false,
+  "server": {
+    "androidScheme": "https"
+  }
+}
