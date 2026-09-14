@@ -14,14 +14,12 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Extract zip package if uploaded
+      - name: Extract source code
         shell: bash
         run: |
           if [ -f "resurrection-calculator-source.zip" ]; then
-            echo "Found source! Extracting..."
             unzip -o resurrection-calculator-source.zip
           elif [ -f "source.zip" ]; then
-            echo "Found source! Extracting..."
             unzip -o source.zip
           fi
 
@@ -30,50 +28,52 @@ jobs:
         with:
           node-version: 22
 
-      - name: Fix package.json for Windows
-        shell: bash
-        run: |
-          npm pkg set description="Resurrection Calculator Application"
-          npm pkg set author="Jose"
-          npm pkg set main="electron/main.cjs"
-
-      - name: Install dependencies
-        shell: bash
-        run: |
-          npm install --legacy-peer-deps || npm install
-          npm install electron electron-builder --save-dev
-
       - name: Build Web App
         shell: bash
-        run: npm run build
+        run: |
+          npm install
+          npm run build
 
-      - name: Create Configuration File
+      - name: Create Clean Windows Environment
         shell: bash
         run: |
-          cat <<EOF > electron-builder.json
+          mkdir win-build
+          cp -r dist win-build/
+          cp -r electron win-build/
+          cp -r public win-build/
+          cat <<EOF > win-build/package.json
           {
-            "appId": "com.resurrection.calculator",
+            "name": "resurrection-calculator",
             "productName": "Resurrection Calculator",
-            "directories": {
-              "output": "release"
+            "version": "1.0.0",
+            "description": "Calculator",
+            "main": "electron/main.cjs",
+            "author": "Jose",
+            "devDependencies": {
+              "electron": "^30.0.0",
+              "electron-builder": "^24.13.3"
             },
-            "win": {
-              "target": ["portable", "nsis"]
-            },
-            "files": [
-              "dist/**/*",
-              "electron/**/*",
-              "package.json"
-            ]
+            "build": {
+              "appId": "com.resurrection.calculator",
+              "directories": {
+                "output": "release"
+              },
+              "win": {
+                "target": "portable"
+              }
+            }
           }
           EOF
 
-      - name: Package Windows Executable (.exe)
+      - name: Build .exe
         shell: bash
-        run: npx electron-builder build --win --config electron-builder.json
+        working-directory: ./win-build
+        run: |
+          npm install
+          npx electron-builder build --win portable
 
-      - name: Upload Windows Executable Artifact
+      - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
           name: Resurrection-Calculator-Windows-x64
-          path: release/*.exe
+          path: win-build/release/*.exe
