@@ -34,21 +34,46 @@ jobs:
           npm install
           npm run build
 
-      - name: Create Clean Windows Environment
+      - name: Create Windows App Wrapper
         shell: bash
         run: |
           mkdir win-build
-          cp -r dist win-build/
-          cp -r electron win-build/
-          cp -r public win-build/
-          cat <<EOF > win-build/package.json
+          
+          # 1. Copiamos los archivos de tu app
+          if [ -d "dist" ]; then cp -r dist win-build/; elif [ -d "build" ]; then cp -r build win-build/dist; fi
+          
+          # 2. CREAMOS EL ARCHIVO DE WINDOWS QUE TE FALTABA AUTOMÁTICAMENTE
+          cat << 'EOF' > win-build/main.js
+          const { app, BrowserWindow } = require('electron');
+          const path = require('path');
+          
+          function createWindow () {
+            const win = new BrowserWindow({
+              width: 1000,
+              height: 800,
+              autoHideMenuBar: true,
+              webPreferences: {
+                nodeIntegration: true
+              }
+            });
+            win.loadFile(path.join(__dirname, 'dist', 'index.html'));
+          }
+          
+          app.whenReady().then(createWindow);
+          app.on('window-all-closed', () => {
+            if (process.platform !== 'darwin') {
+              app.quit();
+            }
+          });
+          EOF
+          
+          # 3. CREAMOS LA CONFIGURACIÓN EXACTA
+          cat << 'EOF' > win-build/package.json
           {
             "name": "resurrection-calculator",
             "productName": "Resurrection Calculator",
             "version": "1.0.0",
-            "description": "Calculator",
-            "main": "electron/main.cjs",
-            "author": "Jose",
+            "main": "main.js",
             "devDependencies": {
               "electron": "^30.0.0",
               "electron-builder": "^24.13.3"
@@ -75,5 +100,5 @@ jobs:
       - name: Upload Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Resurrection-Calculator-Windows-x64
+          name: Resurrection-Calculator-Windows
           path: win-build/release/*.exe
