@@ -30,9 +30,17 @@ jobs:
         with:
           node-version: 22
 
+      - name: Fix package.json for Windows
+        shell: bash
+        run: |
+          npm pkg set description="Resurrection Calculator Application"
+          npm pkg set author="Jose"
+
       - name: Install dependencies
         shell: bash
-        run: npm install --legacy-peer-deps || npm install
+        run: |
+          npm install --legacy-peer-deps || npm install
+          npm install electron --save-dev
 
       - name: Build Web App
         shell: bash
