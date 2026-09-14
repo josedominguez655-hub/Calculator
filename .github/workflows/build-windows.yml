@@ -1,0 +1,56 @@
+name: Build Windows Application (.exe)
+
+on:
+  workflow_dispatch:
+  push:
+    branches: ["main"]
+
+jobs:
+  build-windows:
+    name: Build Windows (.exe)
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract zip package if uploaded
+        shell: bash
+        run: |
+          if [ -f "resurrection-calculator-source.zip" ]; then
+            echo "Found resurrection-calculator-source.zip! Extracting to update code..."
+            unzip -o resurrection-calculator-source.zip
+          elif [ -f "source.zip" ]; then
+            echo "Found source.zip! Extracting to update code..."
+            unzip -o source.zip
+          fi
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies
+        shell: bash
+        run: npm install --legacy-peer-deps || npm install
+
+      - name: Build Web App
+        shell: bash
+        run: npm run build
+
+      - name: Package Windows Executable (.exe)
+        shell: bash
+        run: |
+          npx --yes electron-builder --win portable nsis \
+            --config.appId="com.resurrection.calculator" \
+            --config.productName="Resurrection Calculator" \
+            --config.directories.output="release" \
+            --config.win.target="portable,nsis" \
+            --config.files="dist/**/*,electron/**/*" \
+            --config.extraMetadata.main="electron/main.cjs"
+
+      - name: Upload Windows Executable Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Resurrection-Calculator-Windows-x64
+          path: release/*.exe
