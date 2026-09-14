@@ -18,10 +18,10 @@ jobs:
         shell: bash
         run: |
           if [ -f "resurrection-calculator-source.zip" ]; then
-            echo "Found resurrection-calculator-source.zip! Extracting to update code..."
+            echo "Found source! Extracting..."
             unzip -o resurrection-calculator-source.zip
           elif [ -f "source.zip" ]; then
-            echo "Found source.zip! Extracting to update code..."
+            echo "Found source! Extracting..."
             unzip -o source.zip
           fi
 
@@ -35,27 +35,42 @@ jobs:
         run: |
           npm pkg set description="Resurrection Calculator Application"
           npm pkg set author="Jose"
+          npm pkg set main="electron/main.cjs"
 
       - name: Install dependencies
         shell: bash
         run: |
           npm install --legacy-peer-deps || npm install
-          npm install electron --save-dev
+          npm install electron electron-builder --save-dev
 
       - name: Build Web App
         shell: bash
         run: npm run build
 
-      - name: Package Windows Executable (.exe)
+      - name: Create Configuration File
         shell: bash
         run: |
-          npx --yes electron-builder --win portable nsis \
-            --config.appId="com.resurrection.calculator" \
-            --config.productName="Resurrection Calculator" \
-            --config.directories.output="release" \
-            --config.win.target="portable,nsis" \
-            --config.files="dist/**/*,electron/**/*" \
-            --config.extraMetadata.main="electron/main.cjs"
+          cat <<EOF > electron-builder.json
+          {
+            "appId": "com.resurrection.calculator",
+            "productName": "Resurrection Calculator",
+            "directories": {
+              "output": "release"
+            },
+            "win": {
+              "target": ["portable", "nsis"]
+            },
+            "files": [
+              "dist/**/*",
+              "electron/**/*",
+              "package.json"
+            ]
+          }
+          EOF
+
+      - name: Package Windows Executable (.exe)
+        shell: bash
+        run: npx electron-builder build --win --config electron-builder.json
 
       - name: Upload Windows Executable Artifact
         uses: actions/upload-artifact@v4
