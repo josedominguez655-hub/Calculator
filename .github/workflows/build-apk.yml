@@ -1,4 +1,4 @@
-name: Build Android APK
+name: Build Windows Application (.exe)
 
 on:
   workflow_dispatch:
@@ -6,67 +6,59 @@ on:
     branches: ["main"]
 
 jobs:
-  build-apk:
-    name: Build Android APK
-    runs-on: ubuntu-latest
+  build-windows:
+    name: Build Windows (.exe)
+    runs-on: windows-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Extract zip package if uploaded
+        shell: bash
         run: |
           if [ -f "resurrection-calculator-source.zip" ]; then
-            echo "Found resurrection-calculator-source.zip! Overwriting repository files with full latest version..."
+            echo "Found resurrection-calculator-source.zip! Extracting to update code..."
             unzip -o resurrection-calculator-source.zip
           elif [ -f "source.zip" ]; then
-            echo "Found source.zip! Overwriting repository files with full latest version..."
+            echo "Found source.zip! Extracting to update code..."
             unzip -o source.zip
           fi
-
-      - name: Set up Java 21
-        uses: actions/setup-java@v4
-        with:
-          distribution: 'zulu'
-          java-version: '21'
-
-      - name: Set up Android SDK
-        uses: android-actions/setup-android@v3
-
-      - name: Accept Android SDK Licenses
-        run: |
-          yes | $ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager --licenses || true
 
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
           node-version: 22
 
+      - name: Fix package.json for Windows
+        shell: bash
+        run: |
+          npm pkg set description="Resurrection Calculator Application"
+          npm pkg set author="Jose"
+
       - name: Install dependencies
-        run: npm install --legacy-peer-deps || npm install
+        shell: bash
+        run: |
+          npm install --legacy-peer-deps || npm install
+          npm install electron --save-dev
 
       - name: Build Web App
+        shell: bash
         run: npm run build
 
-      - name: Setup Capacitor & Sync Android
+      - name: Package Windows Executable (.exe)
+        shell: bash
         run: |
-          npm install @capacitor/core @capacitor/cli @capacitor/android
-          if [ ! -f "capacitor.config.json" ]; then
-            echo '{"appId":"com.resurrection.calculator","appName":"Resurrection Calculator","webDir":"dist","server":{"androidScheme":"https"}}' > capacitor.config.json
-          fi
-          if [ ! -d "android" ]; then
-            npx cap add android
-          fi
-          npx cap sync android
+          npx --yes electron-builder --win portable nsis \
+            --config.appId="com.resurrection.calculator" \
+            --config.productName="Resurrection Calculator" \
+            --config.directories.output="release" \
+            --config.win.target="portable,nsis" \
+            --config.files="dist/**/*,electron/**/*" \
+            --config.extraMetadata.main="electron/main.cjs"
 
-      - name: Build Android Debug APK
-        run: |
-          cd android
-          chmod +x ./gradlew
-          ./gradlew assembleDebug --no-daemon --stacktrace
-
-      - name: Upload APK Artifact
+      - name: Upload Windows Executable Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: Resurrection-Calculator.apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: Resurrection-Calculator-Windows-x64
+          path: release/*.exe
