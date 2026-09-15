@@ -37,17 +37,21 @@ jobs:
       - name: Create Windows App Wrapper
         shell: bash
         run: |
-          mkdir win-build
-          
-          # 1. Copiamos los archivos de tu app
-          if [ -d "dist" ]; then cp -r dist win-build/; elif [ -d "build" ]; then cp -r build win-build/dist; fi
-          
-          # 2. CREAMOS EL ARCHIVO DE WINDOWS QUE TE FALTABA AUTOMÁTICAMENTE
-          cat << 'EOF' > win-build/main.js
+          mkdir -p win-build/dist
+
+          # Copiamos la app compilada
+          if [ -d "dist" ]; then
+            cp -r dist/. win-build/dist/
+          elif [ -d "build" ]; then
+            cp -r build/. win-build/dist/
+          fi
+
+          # Creamos el archivo principal de Electron automáticamente
+          cat > win-build/main.js << 'EOF'
           const { app, BrowserWindow } = require('electron');
           const path = require('path');
-          
-          function createWindow () {
+
+          function createWindow() {
             const win = new BrowserWindow({
               width: 1000,
               height: 800,
@@ -58,21 +62,30 @@ jobs:
             });
             win.loadFile(path.join(__dirname, 'dist', 'index.html'));
           }
-          
+
           app.whenReady().then(createWindow);
+
           app.on('window-all-closed', () => {
             if (process.platform !== 'darwin') {
               app.quit();
             }
           });
+
+          app.on('activate', () => {
+            if (BrowserWindow.getAllWindows().length === 0) {
+              createWindow();
+            }
+          });
           EOF
-          
-          # 3. CREAMOS LA CONFIGURACIÓN EXACTA
-          cat << 'EOF' > win-build/package.json
+
+          # Creamos el package.json de la app de escritorio
+          cat > win-build/package.json << 'EOF'
           {
             "name": "resurrection-calculator",
             "productName": "Resurrection Calculator",
             "version": "1.0.0",
+            "description": "Resurrection Calculator",
+            "author": "Jose",
             "main": "main.js",
             "devDependencies": {
               "electron": "^30.0.0",
@@ -80,12 +93,17 @@ jobs:
             },
             "build": {
               "appId": "com.resurrection.calculator",
+              "productName": "Resurrection Calculator",
               "directories": {
                 "output": "release"
               },
               "win": {
                 "target": "portable"
-              }
+              },
+              "files": [
+                "main.js",
+                "dist/**/*"
+              ]
             }
           }
           EOF
