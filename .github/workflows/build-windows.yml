@@ -12,53 +12,39 @@ jobs:
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
-
-      - name: Extract source code
-        shell: bash
-        run: |
-          if [ -f "resurrection-calculator-source.zip" ]; then
-            unzip -o resurrection-calculator-source.zip
-          elif [ -f "source.zip" ]; then
-            unzip -o source.zip
-          fi
+        uses: actions/checkout@v5
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v5
         with:
           node-version: 22
 
-      - name: Build Web App
+      - name: Install dependencies and build web app
         shell: bash
         run: |
           npm install
           npm run build
 
-      - name: Create Windows App Wrapper
+      - name: Create isolated Electron wrapper
         shell: bash
         run: |
-          mkdir -p win-build/dist
+          set -e
+          mkdir -p win-build
+          cp -r dist win-build/dist
 
-          # Copiamos la app compilada
-          if [ -d "dist" ]; then
-            cp -r dist/. win-build/dist/
-          elif [ -d "build" ]; then
-            cp -r build/. win-build/dist/
-          fi
-
-          # Creamos el archivo principal de Electron automáticamente
           cat > win-build/main.js << 'EOF'
           const { app, BrowserWindow } = require('electron');
           const path = require('path');
 
           function createWindow() {
             const win = new BrowserWindow({
-              width: 1000,
+              width: 1100,
               height: 800,
               autoHideMenuBar: true,
               webPreferences: {
-                nodeIntegration: true
-              }
+                nodeIntegration: false,
+                contextIsolation: true,
+              },
             });
             win.loadFile(path.join(__dirname, 'dist', 'index.html'));
           }
@@ -66,57 +52,44 @@ jobs:
           app.whenReady().then(createWindow);
 
           app.on('window-all-closed', () => {
-            if (process.platform !== 'darwin') {
-              app.quit();
-            }
+            if (process.platform !== 'darwin') app.quit();
           });
 
           app.on('activate', () => {
-            if (BrowserWindow.getAllWindows().length === 0) {
-              createWindow();
-            }
+            if (BrowserWindow.getAllWindows().length === 0) createWindow();
           });
           EOF
 
-          # Creamos el package.json de la app de escritorio
           cat > win-build/package.json << 'EOF'
           {
             "name": "resurrection-calculator",
             "productName": "Resurrection Calculator",
             "version": "1.0.0",
-            "description": "Resurrection Calculator",
+            "description": "Resurrection Calculator desktop app",
             "author": "Jose",
-            "main": "main.js",
-            "devDependencies": {
-              "electron": "^30.0.0",
-              "electron-builder": "^24.13.3"
-            },
-            "build": {
-              "appId": "com.resurrection.calculator",
-              "productName": "Resurrection Calculator",
-              "directories": {
-                "output": "release"
-              },
-              "win": {
-                "target": "portable"
-              },
-              "files": [
-                "main.js",
-                "dist/**/*"
-              ]
-            }
+            "private": true,
+            "main": "main.js"
           }
           EOF
 
-      - name: Build .exe
+      - name: Install Electron and Packager (no code-signing tools involved)
+        shell: bash
+        working-directory: ./win-build
+        run: npm install --no-save electron@30 @electron/packager@18
+
+      - name: Package portable Windows app
         shell: bash
         working-directory: ./win-build
         run: |
-          npm install
-          npx electron-builder build --win portable
+          npx electron-packager . "Resurrection Calculator" \
+            --platform=win32 \
+            --arch=x64 \
+            --out=release \
+            --overwrite \
+            --asar
 
-      - name: Upload Artifact
+      - name: Upload Windows build artifact
         uses: actions/upload-artifact@v4
         with:
           name: Resurrection-Calculator-Windows
-          path: win-build/release/*.exe
+          path: win-build/release/**
