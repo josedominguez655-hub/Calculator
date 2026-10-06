@@ -6,6 +6,10 @@ import dotenv from 'dotenv';
 
 dotenv.config();
 
+function getFinnhubApiKey(): string | null {
+  return process.env.FINNHUB_API_KEY?.trim() || null;
+}
+
 async function startServer() {
   const app = express();
   const PORT = 3000;
@@ -64,7 +68,10 @@ async function startServer() {
       }
 
       const symbol = rawSymbol.toUpperCase();
-      const apiKey = process.env.FINNHUB_API_KEY || 'dagh4ghr01quf8muaal0dagh4ghr01quf8muaalg';
+      const apiKey = getFinnhubApiKey();
+      if (!apiKey) {
+        return res.status(503).json({ error: 'Live stock quotes require FINNHUB_API_KEY.' });
+      }
 
       const finnhubQuoteUrl = `https://finnhub.io/api/v1/quote?symbol=${encodeURIComponent(symbol)}&token=${apiKey}`;
       const finnhubProfileUrl = `https://finnhub.io/api/v1/stock/profile2?symbol=${encodeURIComponent(symbol)}&token=${apiKey}`;
@@ -173,7 +180,10 @@ async function startServer() {
         return res.json({ result: [] });
       }
 
-      const apiKey = process.env.FINNHUB_API_KEY || 'dagh4ghr01quf8muaal0dagh4ghr01quf8muaalg';
+      const apiKey = getFinnhubApiKey();
+      if (!apiKey) {
+        return res.status(503).json({ error: 'Stock search requires FINNHUB_API_KEY.' });
+      }
       const response = await fetch(
         `https://finnhub.io/api/v1/search?q=${encodeURIComponent(query)}&token=${apiKey}`
       );

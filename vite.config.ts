@@ -69,14 +69,17 @@ function aistudioMediaPlugin(): Plugin {
 }
 // LINT.ThenChange(//depot/google3/java/com/google/alkali/boq/makersuite/applet_dev_service/templates/initializers/react_theme/vite.config.ts:aistudio_media_plugin)
 
-export default defineConfig(() => {
+export default defineConfig(({ mode }) => {
+  const isElectronBuild = mode === 'electron';
+
   return {
-    base: '/',
+    // Electron opens the production page from file://, so bundled assets need relative URLs.
+    base: isElectronBuild ? './' : '/',
     plugins: [
       react(),
       tailwindcss(),
       aistudioMediaPlugin(),
-      VitePWA({
+      ...(!isElectronBuild ? [VitePWA({
         registerType: 'autoUpdate',
         includeAssets: ['icon.svg', 'apple-touch-icon.png', 'pwa-192x192.png', 'pwa-512x512.png', 'pwa-maskable-512x512.png', 'sw.js', 'manifest.json'],
         manifest: {
@@ -117,7 +120,7 @@ export default defineConfig(() => {
         devOptions: {
           enabled: false,
         },
-      }),
+      })] : []),
     ],
     resolve: {
       alias: {
