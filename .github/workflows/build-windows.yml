@@ -74,7 +74,6 @@ jobs:
             "main": "main.js",
             "build": {
               "appId": "com.jose.resurrectioncalculator",
-              "electronDist": "node_modules/electron/dist",
               "npmRebuild": false,
               "directories": {
                 "output": "release"
@@ -90,10 +89,8 @@ jobs:
               }
             },
             "devDependencies": {
+              "electron": "44.5.1",
               "electron-builder": "^26.0.0"
-            },
-            "dependencies": {
-              "electron": "44.5.1"
             }
           }
           EOF
@@ -101,7 +98,12 @@ jobs:
       - name: Install Electron and electron-builder
         shell: bash
         working-directory: ./win-build
-        run: npm install
+        run: npm install --include=dev
+
+      - name: Verify Electron runtime was downloaded
+        shell: bash
+        working-directory: ./win-build
+        run: test -f node_modules/electron/dist/electron.exe
 
       - name: Package portable Windows executable
         shell: bash
