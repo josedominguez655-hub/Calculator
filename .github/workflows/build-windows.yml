@@ -2,6 +2,8 @@ name: Build Windows Application (.exe)
 
 on:
   workflow_dispatch:
+  pull_request:
+    branches: ["main"]
   push:
     branches: ["main"]
 
@@ -19,11 +21,11 @@ jobs:
         with:
           node-version: 22
 
-      - name: Install dependencies and build web app
+      - name: Install dependencies and build Electron-ready web app
         shell: bash
         run: |
           npm install
-          npm run build
+          npm run build:web
 
       - name: Create isolated Electron wrapper
         shell: bash
@@ -42,6 +44,7 @@ jobs:
               height: 800,
               autoHideMenuBar: true,
               webPreferences: {
+                sandbox: true,
                 nodeIntegration: false,
                 contextIsolation: true,
               },
@@ -68,28 +71,43 @@ jobs:
             "description": "Resurrection Calculator desktop app",
             "author": "Jose",
             "private": true,
-            "main": "main.js"
+            "main": "main.js",
+            "build": {
+              "appId": "com.jose.resurrectioncalculator",
+              "electronDist": "node_modules/electron/dist",
+              "npmRebuild": false,
+              "directories": {
+                "output": "release"
+              },
+              "files": [
+                "main.js",
+                "dist/**/*"
+              ],
+              "win": {
+                "target": [
+                  "portable"
+                ]
+              }
+            },
+            "devDependencies": {
+              "electron": "44.5.1",
+              "electron-builder": "^26.0.0"
+            }
           }
           EOF
 
-      - name: Install Electron and Packager (no code-signing tools involved)
+      - name: Install Electron and electron-builder
         shell: bash
         working-directory: ./win-build
-        run: npm install --no-save electron@30 @electron/packager@18
+        run: npm install
 
-      - name: Package portable Windows app
+      - name: Package portable Windows executable
         shell: bash
         working-directory: ./win-build
-        run: |
-          npx electron-packager . "Resurrection Calculator" \
-            --platform=win32 \
-            --arch=x64 \
-            --out=release \
-            --overwrite \
-            --asar
+        run: npx electron-builder --win portable --x64
 
       - name: Upload Windows build artifact
         uses: actions/upload-artifact@v4
         with:
           name: Resurrection-Calculator-Windows
-          path: win-build/release/**
+          path: win-build/release/*.exe
