@@ -35,6 +35,12 @@ Una aplicación web progresiva (PWA) de alto rendimiento para calcular estrategi
    npm start
    ```
 
+## 🪟 Aplicación de Windows (.exe)
+
+El flujo de GitHub Actions crea una aplicación portable de Windows con Electron. En GitHub, abre **Actions → Build Windows Application (.exe) → Run workflow**. Cuando termine, descarga el artefacto `Resurrection-Calculator-Windows` y ejecuta el `.exe`.
+
+La compilación de escritorio usa `npm run build:web`, que genera recursos con rutas relativas para que funcionen al abrirse desde Electron (`file://`). La compilación web normal sigue usando `npm run build`.
+
 ---
 
 ## 📁 Estructura del proyecto
