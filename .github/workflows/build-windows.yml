@@ -98,7 +98,10 @@ jobs:
       - name: Install Electron and electron-builder
         shell: bash
         working-directory: ./win-build
-        run: npm install --include=dev
+        run: |
+          unset ELECTRON_SKIP_BINARY_DOWNLOAD
+          npm install --include=dev --ignore-scripts=false
+          node node_modules/electron/install.js
 
       - name: Verify Electron runtime was downloaded
         shell: bash
